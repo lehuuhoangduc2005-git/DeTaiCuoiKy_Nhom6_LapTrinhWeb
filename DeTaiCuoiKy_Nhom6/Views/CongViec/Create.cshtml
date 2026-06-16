@@ -1,0 +1,198 @@
+﻿@model DeTaiCuoiKy_Nhom6.Models.CongViec
+
+<style>
+    .quadrant-card {
+        border-radius: 16px;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: default;
+        border: 2px solid transparent !important;
+    }
+    /* Hiệu ứng trồi lên và đổ bóng đậm khi ô đó được "thắp sáng" */
+    .quadrant-active {
+        transform: translateY(-4px);
+        opacity: 1 !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+    }
+    
+    @@keyframes pulseGlow {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+        100% { transform: scale(1); }
+    }
+    .quadrant-active .badge {
+        animation: pulseGlow 2s infinite ease-in-out;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border border-2 border-secondary rounded-4 overflow-hidden">
+                <div class="card-header text-white p-4" style="background-color: #0f172a; border-bottom: 3px solid #1e40af;">
+                    <h3 class="m-0 fw-bold text-white" style="color: white !important;">
+                        <i class="fa-solid fa-circle-plus me-2 text-warning"></i> Thêm Công Việc Mới
+                    </h3>
+                </div>
+                
+                <div class="card-body p-4 bg-white">
+                    <form asp-action="Create" method="post">
+                        
+                        <input type="hidden" asp-for="MaTranEisenhower" id="selectEisenhower" value="4" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark fs-6">Tên công việc <span class="text-danger">*</span></label>
+                            <input asp-for="TenCongViec" id="txtTenCongViec" class="form-control form-control-lg border-2 border-secondary fw-semibold" 
+                                   placeholder="Ví dụ: Nộp báo cáo đồ án tuần 6 gấp trước ngày mai..." onkeyup="autoAnalyzeEisenhower()" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark fs-6">Mô tả công việc</label>
+                            <textarea asp-for="MoTa" id="txtMoTa" class="form-control border-2 border-secondary fw-medium" rows="3" 
+                                      placeholder="Nhập tóm tắt ghi chú nhiệm vụ cần làm..." onkeyup="autoAnalyzeEisenhower()"></textarea>
+                            <div class="form-text text-muted mt-2">
+                                <i class="fa-solid fa-wand-magic-sparkles text-primary me-1"></i> 
+                                Trợ lý thông minh sẽ phân tích từ khóa từ Tên và Mô tả để tự động xếp vào ma trận bên dưới.
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-bold text-dark fs-6">Hạn chót hoàn thành (Giờ & Ngày) <span class="text-danger">*</span></label>
+                                <input asp-for="NgayHetHan" type="datetime-local" class="form-control border-2 border-secondary fw-bold text-dark" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-dark fs-6">Lĩnh vực / Phân loại</label>
+                                <select asp-for="PhanLoai" class="form-select border-2 border-secondary fw-bold text-dark">
+                                    <option value="Cá nhân">Cá nhân</option>
+                                    <option value="Học tập">Học tập</option>
+                                    <option value="Công việc">Công việc</option>
+                                    <option value="Văn phòng">Văn phòng</option>
+                                    <option value="Công sở">Công sở</option>
+                                    <option value="Giáo dục">Giáo dục</option>
+                                    <option value="Y tế">Y tế</option>
+                                    <option value="Marketing">Marketing</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 bg-light p-3 rounded-4 border border-1 border-secondary border-opacity-25">
+                            <h6 class="fw-bold text-secondary mb-3"><i class="fa-solid fa-map me-1"></i> Định vị phân bổ Ma trận Eisenhower:</h6>
+                            
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <div id="quadrant-1" class="card h-100 quadrant-card bg-white opacity-50 p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fw-bold">🔥 1. LÀM NGAY</span>
+                                            <i class="fa-solid fa-circle-exclamation text-danger fs-5"></i>
+                                        </div>
+                                        <p class="fw-bold text-dark mb-1 small">Khẩn cấp & Quan trọng</p>
+                                        <span style="font-size: 11px;" class="text-muted">Làm ngay lập tức vì việc này ảnh hưởng trực tiếp cốt lõi.</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+                                    <div id="quadrant-2" class="card h-100 quadrant-card bg-white opacity-50 p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 fw-bold">📅 2. LÊN LỊCH</span>
+                                            <i class="fa-solid fa-calendar-check text-primary fs-5"></i>
+                                        </div>
+                                        <p class="fw-bold text-dark mb-1 small">Quan trọng - Không khẩn</p>
+                                        <span style="font-size: 11px;" class="text-muted">Lên kế hoạch thực hiện để tích lũy giá trị dài hạn ổn định.</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+                                    <div id="quadrant-3" class="card h-100 quadrant-card bg-white opacity-50 p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold">👥 3. ỦY QUYỀN</span>
+                                            <i class="fa-solid fa-user-group text-warning fs-5"></i>
+                                        </div>
+                                        <p class="fw-bold text-dark mb-1 small">Khẩn cấp - Ít quan trọng</p>
+                                        <span style="font-size: 11px;" class="text-muted">Nhờ hỗ trợ hoặc làm sau khi đã xong các việc chính yếu.</span>
+                                    </div>
+                                </div>
+
+                                <div class="col-sm-6">
+                                    <div id="quadrant-4" class="card h-100 quadrant-card bg-white p-3 quadrant-active" style="border-color: #6c757d !important;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1 fw-bold">🗑️ 4. XÓA / GIẢM</span>
+                                            <i class="fa-solid fa-mug-hot text-secondary fs-5"></i>
+                                        </div>
+                                        <p class="fw-bold text-dark mb-1 small">Không quan trọng & Không khẩn</p>
+                                        <span style="font-size: 11px;" class="text-muted">Các hoạt động vặt vãnh, giải trí tốn thời gian vô bổ.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success btn-lg shadow fw-bold">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> Lưu Công Việc
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-dark fw-bold">Quay lại danh sách</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function autoAnalyzeEisenhower() {
+        // Lấy nội dung gõ từ cả 2 trường Tên và Mô tả
+        const ten = document.getElementById("txtTenCongViec").value.toLowerCase();
+        const mota = document.getElementById("txtMoTa").value.toLowerCase();
+        
+        // Gộp chung lại để phân tích toàn diện
+        const combinedText = ten + " " + mota;
+
+        // Tập từ khóa nhận diện tính chất "Khẩn cấp"
+        const urgentKeywords = ['gấp', 'ngay', 'nộp', 'hạn chót', 'deadline', 'trễ', 'phạt', 'tối nay', 'ngày mai', 'chốt', 'khẩn', 'liên hệ luôn'];
+        
+        // Tập từ khóa nhận diện tính chất "Quan trọng"
+        const importantKeywords = ['sếp', 'khách hàng', 'thi', 'đồ án', 'cuối kỳ', 'quan trọng', 'cốt lõi', 'tiền', 'hợp đồng', 'đối tác', 'học', 'nhóm 6', 'bảo vệ', 'kiểm tra'];
+
+        // Logic kiểm tra từ khóa xuất hiện
+        let isUrgent = urgentKeywords.some(kw => combinedText.includes(kw));
+        let isImportant = importantKeywords.some(kw => combinedText.includes(kw));
+
+        // Xác định Ô (mặc định là ô 4)
+        let targetQuadrant = 4;
+
+        if (isImportant && isUrgent) {
+            targetQuadrant = 1; // Ô 1
+        } else if (isImportant && !isUrgent) {
+            targetQuadrant = 2; // Ô 2
+        } else if (!isImportant && isUrgent) {
+            targetQuadrant = 3; // Ô 3
+        } else {
+            targetQuadrant = 4; // Ô 4
+        }
+
+        // Cập nhật giá trị vào trường ẩn để đưa về C# Model
+        document.getElementById("selectEisenhower").value = targetQuadrant;
+
+        // Xử lý đồ họa thay đổi class active và viền màu sắc cho 4 ô tương ứng
+        const colors = {
+            1: "#dc3545", // Đỏ
+            2: "#0d6efd", // Xanh dương
+            3: "#ffc107", // Vàng
+            4: "#6c757d"  // Xám
+        };
+
+        for (let i = 1; i <= 4; i++) {
+            let card = document.getElementById(`quadrant-${i}`);
+            if (i === targetQuadrant) {
+                card.classList.add("quadrant-active");
+                card.classList.remove("opacity-50");
+                card.style.borderColor = colors[i] + " !important";
+                card.setAttribute("style", `border-color: ${colors[i]} !important;`);
+            } else {
+                card.classList.remove("quadrant-active");
+                card.classList.add("opacity-50");
+                card.setAttribute("style", "border-color: transparent !important;");
+            }
+        }
+    }
+</script>

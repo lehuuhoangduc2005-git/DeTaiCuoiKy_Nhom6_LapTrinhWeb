@@ -1,0 +1,24 @@
+﻿@model DeTaiCuoiKy_Nhom6.Models.CongViec
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 rounded-4 text-center p-4">
+                <div class="card-body">
+                    <div class="display-1 text-danger mb-3"><i class="bi bi-exclamation-triangle"></i></div>
+                    <h3 class="mb-4">Bạn chắc chắn muốn xóa?</h3>
+                    <p class="text-muted">Hành động này không thể hoàn tác với công việc:</p>
+                    <h4 class="fw-bold text-dark mb-4 p-3 bg-light rounded">@Model.TenCongViec</h4>
+                    
+                    <form asp-action="Delete">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg shadow-sm">Xác nhận Xóa Vĩnh Viễn</button>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Thôi, quay lại</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

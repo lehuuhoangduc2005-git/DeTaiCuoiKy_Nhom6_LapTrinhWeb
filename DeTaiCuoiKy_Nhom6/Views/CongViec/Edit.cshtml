@@ -1,0 +1,43 @@
+﻿@model DeTaiCuoiKy_Nhom6.Models.CongViec
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border border-2 border-secondary rounded-4">
+                <div class="card-header text-dark p-4" style="background-color: #f59e0b; border-bottom: 3px solid #b45309;">
+                    <h3 class="m-0 fw-bold text-dark"><i class="fa-solid fa-pen-to-square me-2"></i> Cập Nhật Công Việc</h3>
+                </div>
+                <div class="card-body p-4 bg-white">
+                    <form asp-action="Edit" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark fs-6">Tên công việc <span class="text-danger">*</span></label>
+                            <input asp-for="TenCongViec" class="form-control form-control-lg border-2 border-secondary fw-bold" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-dark fs-6">Mô tả công việc</label>
+                            <textarea asp-for="MoTa" class="form-control border-2 border-secondary fw-medium" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold text-dark fs-6">Hạn chót hoàn thành (Giờ & Ngày) <span class="text-danger">*</span></label>
+                                <input asp-for="NgayHetHan" type="datetime-local" value="@Model.NgayHetHan.ToString("yyyy-MM-ddTHH:mm")" class="form-control border-2 border-secondary fw-bold text-dark" required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold text-dark fs-6">Trạng thái hoàn thành</label>
+                                <select asp-for="DaHoanThanh" class="form-select border-2 border-secondary fw-bold text-dark">
+                                    <option value="false">Chưa xong</option>
+                                    <option value="true">Đã xong</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg shadow fw-bold text-dark"><i class="fa-solid fa-circle-check me-1"></i> Cập nhật thay đổi</button>
+                            <a asp-action="Index" class="btn btn-outline-dark fw-bold">Hủy bỏ</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

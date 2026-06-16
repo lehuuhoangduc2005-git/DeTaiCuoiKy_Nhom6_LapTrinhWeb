@@ -1,0 +1,105 @@
+﻿@model DeTaiCuoiKy_Nhom6.Models.ApplicationUser
+@inject Microsoft.AspNetCore.Identity.UserManager<DeTaiCuoiKy_Nhom6.Models.ApplicationUser> UserManager
+
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+    
+    // Lấy danh sách các vai trò (Chức vụ) của thực thể người dùng hiện tại từ cơ sở dữ liệu
+    var roles = await UserManager.GetRolesAsync(Model);
+}
+
+<div class="container mt-2">
+    <div class="row g-4">
+        <div class="col-md-4 text-center">
+            <div class="card shadow-sm border-0 p-4 bg-white" style="border-radius: 20px;">
+                <h5 class="fw-bold mb-4 text-dark border-bottom pb-2 text-start">
+                    <i class="fa-regular fa-image me-2 text-primary"></i>Ảnh Đại Diện
+                </h5>
+                
+                <div class="mb-4 position-relative d-inline-block">
+                    @if (!string.IsNullOrEmpty(Model.Avatars))
+                    {
+                        var avatarList = Model.Avatars.Split(';');
+                        <img src="@avatarList.Last()" class="rounded-circle border border-4 border-primary p-1 shadow-sm" style="width: 140px; height: 140px; object-fit: cover;" />
+                        
+                        <h6 class="mt-4 text-start fw-bold text-secondary small text-uppercase mb-2">Bộ sưu tập của bạn (@avatarList.Length)</h6>
+                        <div class="d-flex flex-wrap gap-2 justify-content-start border p-2 bg-light rounded-3" style="max-height: 140px; overflow-y: auto;">
+                            @foreach (var img in avatarList)
+                            {
+                                <img src="@img" class="rounded border shadow-xs" style="width: 48px; height: 48px; object-fit: cover; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" />
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <img src="https://cdn-icons-png.flaticon.com/512/149/149071.png" class="rounded-circle border border-4 border-secondary p-1" style="width: 140px; height: 140px; object-fit: cover;" />
+                        <p class="text-muted small mt-2">Chưa cập nhật ảnh</p>
+                    }
+                </div>
+
+                <form asp-action="UploadAvatars" method="post" enctype="multipart/form-data" class="text-start mt-2">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Chọn từ một hoặc nhiều tệp ảnh:</label>
+                        <input type="file" name="avatarFiles" class="form-control form-control-sm" multiple accept="image/*" required style="border-radius: 8px;" />
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100 py-2">
+                        <i class="fa-solid fa-cloud-arrow-up me-1"></i> Tải ảnh lên ngay
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 p-4 p-md-5 bg-white" style="border-radius: 20px;">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
+                    <h3 class="fw-bold text-dark mb-0">
+                        <i class="fa-regular fa-address-card me-2 text-primary"></i>Thông Tin Thành Viên
+                    </h3>
+                    <a asp-controller="CongViec" asp-action="Index" class="btn btn-sm btn-outline-secondary px-3 py-2 fw-semibold" style="border-radius: 10px;">
+                        <i class="fa-solid fa-house me-1"></i> Màn hình chính
+                    </a>
+                </div>
+                
+                <div class="row g-3 fs-6">
+                    <div class="col-4 fw-bold text-secondary">Họ và tên thành viên:</div>
+                    <div class="col-8 text-dark fw-medium">@Model.HoTen</div>
+
+                    <div class="col-4 fw-bold text-secondary">Hộp thư điện tử:</div>
+                    <div class="col-8 text-dark fw-medium">@Model.Email</div>
+
+                    <div class="col-4 fw-bold text-secondary">Chức vụ hệ thống:</div>
+                    <div class="col-8">
+                        @if (roles.Contains("Admin"))
+                        {
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-1.5 fw-semibold rounded-pill">
+                                <i class="fa-solid fa-user-shield me-1"></i> Quản trị viên (Admin)
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-1.5 fw-semibold rounded-pill">
+                                <i class="fa-solid fa-user me-1"></i> Thành viên (User)
+                            </span>
+                        }
+                    </div>
+
+                    <div class="col-4 fw-bold text-secondary">Trạng thái bảo mật:</div>
+                    <div class="col-8">
+                        @if (Model.EmailConfirmed)
+                        {
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-1.5 fw-semibold rounded-pill">
+                                <i class="fa-solid fa-circle-check me-1"></i> Đã xác thực Gmail OTP
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-1.5 fw-semibold rounded-pill">
+                                <i class="fa-solid fa-circle-xmark me-1"></i> Chưa xác thực
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

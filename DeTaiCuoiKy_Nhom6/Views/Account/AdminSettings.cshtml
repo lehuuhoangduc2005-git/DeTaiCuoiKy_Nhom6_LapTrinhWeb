@@ -1,0 +1,178 @@
+﻿@{
+    ViewData["Title"] = "Cấu hình Hệ thống - ToDoTech";
+}
+
+<style>
+    .setting-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.08);
+    }
+
+        .setting-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+        }
+
+    .form-switch .form-check-input {
+        width: 2.5em;
+        height: 1.25em;
+        cursor: pointer;
+    }
+
+    .nav-pills .nav-link.active {
+        background-color: #0d6efd;
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-controller="CongViec" asp-action="Index" class="text-decoration-none">Trang chủ</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Hệ thống</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold text-dark mb-0">⚙️ Cấu hình Hệ thống Admin</h2>
+        </div>
+        <button type="button" class="btn btn-primary px-4 py-2 shadow-sm fw-bold" onclick="saveAllSettings()">
+            💾 Lưu Tất Cả Thay Đổi
+        </button>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-3">
+            <div class="card shadow-sm border-0 p-3">
+                <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <button class="nav-link active text-start py-3 mb-2 fw-semibold" id="v-pills-general-tab" data-bs-toggle="pill" data-bs-target="#v-pills-general" type="button" role="tab">
+                        🌐 Cấu hình chung
+                    </button>
+                    <button class="nav-link text-start py-3 mb-2 fw-semibold" id="v-pills-security-tab" data-bs-toggle="pill" data-bs-target="#v-pills-security" type="button" role="tab">
+                        🛡️ Bảo mật & OTP
+                    </button>
+                    <button class="nav-link text-start py-3 mb-2 fw-semibold" id="v-pills-notify-tab" data-bs-toggle="pill" data-bs-target="#v-pills-notify" type="button" role="tab">
+                        🔔 Thông báo & Chuông
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="tab-content" id="v-pills-tabContent">
+                
+                <div class="tab-pane fade show active" id="v-pills-general" role="tabpanel">
+                    <div class="card shadow-sm border-0 setting-card mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold text-primary mb-4">🌐 Thông tin chung ứng dụng</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Tên ứng dụng</label>
+                                    <input type="text" class="form-content form-control py-2" value="ToDoTech - Hệ thống quản lý công việc">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Bản quyền thuộc về</label>
+                                    <input type="text" class="form-control py-2" value="Đề tài Cuối Kỳ - Nhóm 6">
+                                </div>
+                                <div class="col-md-10 mt-3">
+                                    <div class="form-check form-switch d-flex align-items-center justify-content-between p-0 border-bottom pb-3">
+                                        <div>
+                                            <label class="form-check-label fw-bold d-block">Bảo trì hệ thống</label>
+                                            <small class="text-muted">Khi bật, thành viên thông thường (User) sẽ không thể đăng nhập vào hệ thống.</small>
+                                        </div>
+                                        <input class="form-check-input" type="checkbox" id="maintenanceSwitch">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="v-pills-security" role="tabpanel">
+                    <div class="card shadow-sm border-0 setting-card mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold text-success mb-4">🛡️ Cấu hình cổng Xác thực OTP & Đăng nhập</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Thời gian mã OTP hết hạn (Phút)</label>
+                                    <input type="number" class="form-control py-2" value="5">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Độ dài mã xác minh ngẫu nhiên</label>
+                                    <select class="form-select py-2">
+                                        <option value="6" selected>6 chữ số (Mặc định)</option>
+                                        <option value="8">8 chữ số (Bảo mật cao)</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 mt-4">
+                                    <div class="form-check form-switch d-flex align-items-center justify-content-between p-0 border-bottom pb-3">
+                                        <div>
+                                            <label class="form-check-label fw-bold d-block">Bắt buộc liên kết Google Auth</label>
+                                            <small class="text-muted">Yêu cầu người dùng mới phải kích hoạt đăng nhập bằng Google External Login.</small>
+                                        </div>
+                                        <input class="form-check-input" type="checkbox" id="googleAuthSwitch" checked>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="v-pills-notify" role="tabpanel">
+                    <div class="card shadow-sm border-0 setting-card mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold text-danger mb-4">🔔 Cấu hình Chuông Báo & Tiêu Chuẩn Giờ Giấc</h5>
+                            <div class="row g-3">
+                                <div class="col-md-10">
+                                    <div class="alert alert-warning py-3 border-0 shadow-sm d-flex align-items-center">
+                                        <span class="fs-4 me-3">💡</span>
+                                        <div>
+                                            Để chuông báo tính chuẩn xác giờ-phút cụ thể (ví dụ 17:55 reo chuông), hệ thống tự động đổi kiểu thẻ input của trường <code>NgayHetHan</code> thành <code>type="datetime-local"</code> tại Create/Edit View.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <div class="form-check form-switch d-flex align-items-center justify-content-between p-0 border-bottom pb-3">
+                                        <div>
+                                            <label class="form-check-label fw-bold d-block">Âm thanh chuông báo chuẩn xác từng phút</label>
+                                            <small class="text-muted">Bật kiểm thử chuông đạt độ chính xác 100% dựa trên thời gian thực cập nhật từ máy chủ.</small>
+                                        </div>
+                                        <input class="form-check-input" type="checkbox" id="bellAccuracySwitch" checked>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mt-3">
+                                    <label class="form-label fw-semibold">Kiểu âm thanh chuông cảnh báo</label>
+                                    <select class="form-select">
+                                        <option value="default">Mặc định (Digital Alarm)</option>
+                                        <option value="soft">Nhẹ nhàng (Soft Chime)</option>
+                                        <option value="loud">Khẩn cấp (Loud Siren)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="saveToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fs-6 fw-semibold">
+                🎉 Đã lưu thành công mọi cấu hình hệ thống Admin ToDoTech!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function saveAllSettings() {
+        var myAlert = document.getElementById('saveToast');
+        var bsAlert = new bootstrap.Toast(myAlert);
+        bsAlert.show();
+    }
+</script>

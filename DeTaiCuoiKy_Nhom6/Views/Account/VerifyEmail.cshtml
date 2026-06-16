@@ -1,0 +1,38 @@
+﻿@{
+    ViewData["Title"] = "Xác Minh Email";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0 rounded-3">
+                <div class="card-header bg-success text-white text-center py-3">
+                    <h4 class="mb-0">XÁC MINH TÀI KHOẢN</h4>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-center text-muted">
+                        Hệ thống đã gửi một mã kích hoạt gồm 6 chữ số đến email: <br />
+                        <strong class="text-dark">@ViewBag.Email</strong>
+                    </p>
+
+                    <form asp-action="VerifyEmail" method="post">
+                        <div class="form-group mb-4">
+                            <label class="form-label fw-bold">Nhập mã xác minh của bạn:</label>
+                            <input type="text" name="code" class="form-control text-center fs-4 fw-bold text-danger"
+                                   placeholder="• • • • • •" maxlength="6" required autocomplete="off" />
+                        </div>
+
+                        <div class="text-danger mb-3" asp-validation-summary="ModelOnly"></div>
+
+                        <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
+                            XÁC NHẬN KÍCH HOẠT
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer bg-light text-center py-3">
+                    <small class="text-muted">Không nhận được mã? <a href="#" class="text-decoration-none text-success fw-bold">Gửi lại mã</a></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

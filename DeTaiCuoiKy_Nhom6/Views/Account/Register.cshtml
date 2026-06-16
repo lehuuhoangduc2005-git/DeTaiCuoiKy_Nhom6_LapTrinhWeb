@@ -1,0 +1,68 @@
+﻿@model DeTaiCuoiKy_Nhom6.Controllers.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Đăng ký thành viên";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card p-4 p-md-5 border-0 shadow-lg" style="border-radius: 24px; background: #ffffff;">
+            <div class="text-center mb-4">
+                <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                    <i class="fa-solid fa-user-plus fs-3"></i>
+                </div>
+                <h2 class="fw-bold text-dark m-0">Đăng Ký Tài Khoản</h2>
+                <p class="text-muted small mt-1">Gia nhập hệ thống để trải nghiệm dịch vụ</p>
+            </div>
+
+            <form asp-action="Register" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="HoTen" class="form-label small fw-semibold text-secondary">Họ và Tên</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-id-card text-muted"></i></span>
+                        <input asp-for="HoTen" class="form-control bg-light border-0 py-2" placeholder="Nguyễn Văn A" style="border-radius: 0 10px 10px 0;" />
+                    </div>
+                    <span asp-validation-for="HoTen" class="text-danger small"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Email" class="form-label small fw-semibold text-secondary">Địa chỉ Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-envelope text-muted"></i></span>
+                        <input asp-for="Email" class="form-control bg-light border-0 py-2" placeholder="name@example.com" style="border-radius: 0 10px 10px 0;" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Password" class="form-label small fw-semibold text-secondary">Mật khẩu bảo mật</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-lock text-muted"></i></span>
+                        <input asp-for="Password" type="password" class="form-control bg-light border-0 py-2" placeholder="••••••••" style="border-radius: 0 10px 10px 0;" />
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label asp-for="Role" class="form-label small fw-semibold text-secondary">Vai trò phân quyền</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0"><i class="fa-solid fa-user-gear text-muted"></i></span>
+                        <select asp-for="Role" class="form-select bg-light border-0 py-2" style="border-radius: 0 10px 10px 0;">
+                            <option value="User">Người dùng thường (User)</option>
+                            <option value="Admin">Quản trị viên hệ thống (Admin)</option>
+                        </select>
+                    </div>
+                    <span asp-validation-for="Role" class="text-danger small"></span>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 py-2.5 fs-6 rounded-3 shadow-sm mb-3">Đăng Ký Thành Viên 🎉</button>
+            </form>
+
+            <div class="text-center mt-3">
+                <p class="mb-0 text-muted small">Đã có tài khoản hệ thống? <a asp-action="Login" class="text-decoration-none fw-bold text-primary">Đăng nhập ngay</a></p>
+            </div>
+        </div>
+    </div>
+</div>

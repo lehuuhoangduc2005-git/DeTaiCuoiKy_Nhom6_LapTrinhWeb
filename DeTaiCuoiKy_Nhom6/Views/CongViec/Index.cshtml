@@ -1,0 +1,417 @@
+﻿@model IEnumerable<DeTaiCuoiKy_Nhom6.Models.CongViec>
+@using System.Security.Claims
+
+@{
+    ViewData["Title"] = "Quản Lý Công Việc Cá Nhân";
+    var homNay = DateTime.Now; // Đổi sang DateTime.Now để check trễ hạn chính xác theo giờ phút
+    
+    // Lấy thông tin ID và Role của User đang đăng nhập phục vụ phân quyền hiển thị nút
+    var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var isAdmin = User.IsInRole("Admin");
+
+    // --- TỰ ĐỘNG TÍNH TOÁN SỐ LIỆU BIỂU ĐỒ THEO BỘ LỌC HIỆN TẠI ---
+    var totalCompletedCurrent = Model.Count(c => c.DaHoanThanh);
+    var totalPendingCurrent = Model.Count(c => !c.DaHoanThanh);
+
+    // Mở rộng đếm thêm các lĩnh vực mới để đồng bộ hóa lên hệ thống biểu đồ Bar Chart
+    var countCaNhan = Model.Count(c => c.PhanLoai == "Cá nhân");
+    var countHocTap = Model.Count(c => c.PhanLoai == "Học tập");
+    var countCongViec = Model.Count(c => c.PhanLoai == "Công việc");
+    var countVanPhong = Model.Count(c => c.PhanLoai == "Văn phòng");
+    var countCongSo = Model.Count(c => c.PhanLoai == "Công sở");
+    var countGiaoDuc = Model.Count(c => c.PhanLoai == "Giáo dục");
+    var countYTe = Model.Count(c => c.PhanLoai == "Y tế");
+    var countMarketing = Model.Count(c => c.PhanLoai == "Marketing");
+}
+
+<style>
+    /* Nâng cấp màu sắc Gradient mượt mà, chuyên nghiệp hơn */
+    .gradient-header {
+        background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); /* Chuyển sang tone tối tương phản cao */
+        color: white;
+        border-bottom: 3px solid #f59e0b;
+    }
+    .neon-btn-add {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: 2px solid #fff;
+        color: white;
+        font-weight: 700;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+    .neon-btn-add:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        color: white;
+    }
+
+    /* Tối ưu hóa hiệu ứng Task Cards chống lóa trên máy chiếu */
+    .task-card {
+        border: 2px solid #cbd5e1 !important; /* Kẻ viền dày rõ nét */
+        border-left: 6px solid #ef4444 !important; /* Mặc định chưa xong - làm dày thêm */
+        border-radius: 12px;
+        background: #ffffff;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .task-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1) !important;
+        border-color: #94a3b8 !important;
+    }
+    .task-completed {
+        border-left: 6px solid #10b981 !important; /* Xanh ngọc lục bảo khi xong */
+        background-color: #f8fafc;
+    }
+    .task-overdue {
+        border-left: 6px solid #dc2626 !important; /* Đỏ đậm khẩn cấp */
+        background-color: #fef2f2;
+        border-color: #fca5a5 !important;
+    }
+
+    /* Thống kê hình khối phẳng (Đậm màu tăng tương phản khi trình chiếu) */
+    .bg-stat-total { background: linear-gradient(135deg, #1e40af, #1d4ed8); color: white; border: 2px solid #fff; }
+    .bg-stat-done { background: linear-gradient(135deg, #059669, #047857); color: white; border: 2px solid #fff; }
+    .bg-stat-fail { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; border: 2px solid #fff; }
+    
+    .bg-purple { background-color: #7c3aed !important; color: white !important; }
+
+    .chart-container {
+        position: relative;
+        height: 240px;
+        width: 100%;
+    }
+    
+    /* Ép chữ tiêu đề đậm nét */
+    h2, h3, h4, h5, h6, label {
+        color: #020617 !important;
+        font-weight: 700;
+    }
+</style>
+
+<div class="container py-2">
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow rounded-4 bg-stat-total">
+                <div class="card-body d-flex align-items-center justify-content-between p-4">
+                    <div>
+                        <h6 class="text-uppercase fw-bold text-white-50 small m-0 tracking-wider">Tổng số việc</h6>
+                        <h2 class="display-6 fw-bold text-white m-0 mt-1" style="color:white !important;">@ViewData["StatTotal"]</h2>
+                    </div>
+                    <div class="fs-1 text-white opacity-75"><i class="fa-solid fa-list-check"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow rounded-4 bg-stat-done">
+                <div class="card-body d-flex align-items-center justify-content-between p-4">
+                    <div>
+                        <h6 class="text-uppercase fw-bold text-white-50 small m-0 tracking-wider">Đã hoàn thành</h6>
+                        <h2 class="display-6 fw-bold text-white m-0 mt-1" style="color:white !important;">@ViewData["StatCompleted"]</h2>
+                    </div>
+                    <div class="fs-1 text-white opacity-75"><i class="fa-solid fa-circle-check"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow rounded-4 bg-stat-fail">
+                <div class="card-body d-flex align-items-center justify-content-between p-4">
+                    <div>
+                        <h6 class="text-uppercase fw-bold text-white-50 small m-0 tracking-wider">Việc trễ hạn</h6>
+                        <h2 class="display-6 fw-bold text-white m-0 mt-1" style="color:white !important;">@ViewData["StatOverdue"]</h2>
+                    </div>
+                    <div class="fs-1 text-white opacity-75"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow border-2 rounded-4 h-100" style="border: 2px solid #94a3b8 !important;">
+                <div class="card-header bg-white fw-bold text-secondary border-0 pt-3 pb-0">
+                    <i class="fa-solid fa-chart-pie text-primary me-2"></i>Tỷ Lệ Tiến Độ (Bộ Lọc Hiện Tại)
+                </div>
+                <div class="card-body d-flex justify-content-center align-items-center">
+                    <div class="chart-container">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card shadow border-2 rounded-4 h-100" style="border: 2px solid #94a3b8 !important;">
+                <div class="card-header bg-white fw-bold text-secondary border-0 pt-3 pb-0">
+                    <i class="fa-solid fa-chart-column text-success me-2"></i>Số Lượng Theo Phân Loại
+                </div>
+                <div class="card-body d-flex justify-content-center align-items-center">
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow border-2 rounded-4 mb-4" style="border: 2px solid #475569 !important;">
+        <div class="card-header gradient-header text-center p-4 rounded-top-4">
+            <h3 class="fw-bold text-white m-0" style="color: white !important;"><i class="fa-solid fa-clipboard-list me-2"></i>Hệ thống quản lý công việc cá nhân thông minh</h3>
+            <p class="mb-0 text-white-50 small mt-1">Được thiết kế hoàn chỉnh bởi Nhóm 6</p>
+        </div>
+        
+        <div class="card-body bg-white p-4 rounded-bottom-4">
+            <form asp-action="Index" method="get" class="row g-3 mb-4 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark">Tìm kiếm từ khóa</label>
+                    <div class="input-group shadow-sm rounded-3 overflow-hidden border border-2 border-secondary">
+                        <input type="text" name="searchString" class="form-control border-0 bg-light fw-medium" placeholder="Nhập tên việc cần tìm..." value="@ViewData["CurrentSearch"]" />
+                        <button class="btn btn-primary px-3" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </div>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-dark">Trạng thái</label>
+                    <select name="statusFilter" class="form-select border-2 border-secondary bg-light shadow-sm fw-bold" onchange="this.form.submit()">
+                        <option value="">Tất cả</option>
+                        <option value="active" selected="@(ViewData["CurrentStatus"]?.ToString() == "active")">Chưa xong</option>
+                        <option value="completed" selected="@(ViewData["CurrentStatus"]?.ToString() == "completed")">Đã xong</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-dark">Phân loại</label>
+                    <select name="typeFilter" class="form-select border-2 border-secondary bg-light shadow-sm fw-bold" onchange="this.form.submit()">
+                        <option value="">Tất cả</option>
+                        <option value="Cá nhân" selected="@(ViewData["CurrentType"]?.ToString() == "Cá nhân")">Cá nhân</option>
+                        <option value="Học tập" selected="@(ViewData["CurrentType"]?.ToString() == "Học tập")">Học tập</option>
+                        <option value="Công việc" selected="@(ViewData["CurrentType"]?.ToString() == "Công việc")">Công việc</option>
+                        <option value="Văn phòng" selected="@(ViewData["CurrentType"]?.ToString() == "Văn phòng")">Văn phòng</option>
+                        <option value="Công sở" selected="@(ViewData["CurrentType"]?.ToString() == "Công sở")">Công sở</option>
+                        <option value="Giáo dục" selected="@(ViewData["CurrentType"]?.ToString() == "Giáo dục")">Giáo dục</option>
+                        <option value="Y tế" selected="@(ViewData["CurrentType"]?.ToString() == "Y tế")">Y tế</option>
+                        <option value="Marketing" selected="@(ViewData["CurrentType"]?.ToString() == "Marketing")">Marketing</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-dark">Thời gian</label>
+                    <select name="timeFilter" class="form-select border-2 border-secondary bg-light shadow-sm fw-bold" onchange="this.form.submit()">
+                        <option value="">Mọi lúc</option>
+                        <option value="today" selected="@(ViewData["CurrentTime"]?.ToString() == "today")">Hôm nay</option>
+                        <option value="upcoming" selected="@(ViewData["CurrentTime"]?.ToString() == "upcoming")">Sắp tới</option>
+                        <option value="overdue" selected="@(ViewData["CurrentTime"]?.ToString() == "overdue")">Trễ hạn</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <a asp-action="Create" class="btn neon-btn-add w-100 py-2 rounded-3 text-center"><i class="fa-solid fa-circle-plus me-1"></i> Thêm Việc</a>
+                </div>
+            </form>
+
+            <hr class="text-muted opacity-50 border-2">
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="text-dark fw-bold m-0"><i class="fa-solid fa-list text-primary me-2"></i>Danh sách nhiệm vụ thực tế</h5>
+                <div>
+                    <button id="btnGiaoViecNgauNhien" class="btn btn-sm text-white fw-bold rounded-pill px-3 shadow-sm transition me-2" style="background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%); border: 1px solid #fff;">
+                        🎲 Nhận Việc Ngẫu Nhiên
+                    </button>
+                    <button onclick="exportToExcel()" class="btn btn-sm btn-success text-white fw-bold rounded-pill px-3 shadow-sm transition">
+                        <i class="fa-regular fa-file-excel me-1"></i> Xuất Báo Cáo Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                @foreach (var item in Model) {
+                    var isDone = item.DaHoanThanh;
+                    var isOverdue = item.NgayHetHan < homNay && !isDone; // Kiểm tra chính xác theo giờ phút hiện tại
+                    
+                    var borderClass = isDone ? "task-completed" : (isOverdue ? "task-overdue" : "");
+                    
+                    var badgeColor = item.PhanLoai == "Học tập" ? "bg-info text-dark" : 
+                                     (item.PhanLoai == "Công việc" ? "bg-purple text-white" : 
+                                     (item.PhanLoai == "Văn phòng" ? "bg-secondary text-white" :
+                                     (item.PhanLoai == "Công sở" ? "bg-dark text-white" :
+                                     (item.PhanLoai == "Giáo dục" ? "bg-primary text-white" :
+                                     (item.PhanLoai == "Y tế" ? "bg-danger text-white" :
+                                     (item.PhanLoai == "Marketing" ? "bg-success text-white" : "bg-warning text-dark"))))));
+                    
+                    <div class="col-md-6 mb-3">
+                        <div class="card shadow h-100 task-card @borderClass">
+                            <div class="card-body d-flex flex-column justify-content-between p-4">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="badge @badgeColor px-3 py-1.5 rounded-pill fw-bold small shadow-sm border border-light">@item.PhanLoai</span>
+                                        
+                                        <div class="text-end">
+                                            @if (isOverdue) {
+                                                <span class="badge bg-danger text-white rounded-pill px-2 py-1 me-1 small fw-bold animate-pulse"><i class="fa-solid fa-clock me-1"></i> Trễ giờ!</span>
+                                            }
+                                            <span class="text-dark fw-bold small"><i class="fa-regular fa-clock me-1 text-primary"></i> Hạn: @item.NgayHetHan.ToString("HH:mm - dd/MM/yyyy")</span>
+                                        </div>
+                                    </div>
+                                    <h4 class="card-title fw-bold @(isDone ? "text-decoration-line-through text-muted opacity-50" : "text-dark")" style="font-size: 1.2rem;">@item.TenCongViec</h4>
+                                    <p class="card-text text-secondary fw-medium small mt-1 mb-0">@item.MoTa</p>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary border-opacity-25">
+                                    <form asp-action="ToggleStatus" asp-route-id="@item.Id" method="post" class="m-0">
+                                        <button type="submit" class="btn @(isDone ? "btn-success" : "btn-outline-dark") btn-sm rounded-pill px-3 py-1 fw-bold shadow-xs">
+                                            @if(isDone) { 
+                                                <i class="fa-solid fa-circle-check me-1"></i> <span>Đã hoàn thành</span> 
+                                            } 
+                                            else { 
+                                                <i class="fa-regular fa-circle me-1"></i> <span>Đánh dấu xong</span> 
+                                            }
+                                        </button>
+                                    </form>
+
+                                    @if (isAdmin || (item.UserId == currentUserId && item.CreatedByUserId == currentUserId))
+                                    {
+                                        <div class="btn-group btn-group-sm bg-light border border-secondary border-opacity-50 rounded-3 shadow-xs p-0.5">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-link text-primary p-2 border-0 m-0" title="Chỉnh sửa"><i class="fa-solid fa-pen-to-square fs-6"></i></a>
+                                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-link text-danger p-2 border-0 m-0" title="Xóa bỏ"><i class="fa-solid fa-trash-can fs-6"></i></a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                @if (!Model.Any())
+                {
+                    <div class="col-12 text-center py-5">
+                        <div class="text-muted opacity-25 display-1 mb-2"><i class="fa-solid fa-folder-open"></i></div>
+                        <h5 class="text-secondary fw-bold">Không tìm thấy công việc nào thỏa mãn điều kiện lọc! 😉</h5>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<table id="hiddenExcelTable" class="d-none">
+    <thead>
+        <tr>
+            <th>Tên Công Việc</th>
+            <th>Mô Tả</th>
+            <th>Ngày Hết Hạn</th>
+            <th>Phân Loại</th>
+            <th>Trạng Thái</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model) {
+            <tr>
+                <td>@item.TenCongViec</td>
+                <td>@item.MoTa</td>
+                <td>@item.NgayHetHan.ToString("HH:mm dd/MM/yyyy")</td>
+                <td>@item.PhanLoai</td>
+                <td>@(item.DaHoanThanh ? "Đã xong" : "Chưa xong")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Biểu đồ Tiến độ (Pie Chart)
+        const ctxProgress = document.getElementById('progressChart').getContext('2d');
+        new Chart(ctxProgress, {
+            type: 'pie',
+            data: {
+                labels: ['Đã hoàn thành', 'Chưa xong'],
+                datasets: [{
+                    data: [@totalCompletedCurrent, @totalPendingCurrent],
+                    backgroundColor: ['#10b981', '#f59e0b'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { weight: 'bold' } } }
+                }
+            }
+        });
+
+        // Biểu đồ Phân loại (Bar Chart)
+        const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+        new Chart(ctxCategory, {
+            type: 'bar',
+            data: {
+                labels: ['Cá nhân', 'Học tập', 'Công việc', 'Văn phòng', 'Công sở', 'Giáo dục', 'Y tế', 'Marketing'],
+                datasets: [{
+                    label: 'Số lượng công việc',
+                    data: [@countCaNhan, @countHocTap, @countCongViec, @countVanPhong, @countCongSo, @countGiaoDuc, @countYTe, @countMarketing],
+                    backgroundColor: ['#f59e0b', '#06b6d4', '#7c3aed', '#6c757d', '#212529', '#2563eb', '#dc2626', '#16a34a'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1, font: { weight: 'bold' } } },
+                    x: { ticks: { font: { weight: 'bold' } } }
+                }
+            }
+        });
+
+        // XỬ LÝ GỌI API LẤY VIỆC NGẪU NHIÊN
+        document.getElementById("btnGiaoViecNgauNhien").addEventListener("click", function () {
+            this.disabled = true;
+            this.innerHTML = "⌛ Đang bốc thăm...";
+
+            fetch('/CongViec/TaoNgauNhien', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Thành công!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonColor: '#1e40af',
+                        confirmButtonText: 'Đồng ý'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Thất bại', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Lỗi kết nối', 'Hệ thống không phản hồi API!', 'error');
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = "🎲 Nhận Việc Ngẫu Nhiên";
+            });
+        });
+    });
+
+    // LOGIC XUẤT EXCEL CHỐNG LỖI TIẾNG VIỆT
+    function exportToExcel() {
+        var table = document.getElementById("hiddenExcelTable");
+        var html = table.outerHTML;
+        var url = 'data:application/vnd.ms-excel;charset=utf-8,\uFEFF' + encodeURIComponent(html);
+        
+        var downloadLink = document.createElement("a");
+        downloadLink.href = url;
+        downloadLink.download = "BaoCao_CongViec_Nhom6.xls";
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+</script>

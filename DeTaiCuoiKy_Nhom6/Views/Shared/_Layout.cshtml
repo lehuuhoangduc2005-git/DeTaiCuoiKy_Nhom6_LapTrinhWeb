@@ -1,0 +1,410 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ToDoTech</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #f4f7fe;
+                color: #333;
+            }
+
+            .navbar {
+                background: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(10px);
+                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            }
+
+            .nav-link {
+                font-weight: 500;
+                transition: all 0.2s ease;
+            }
+
+                .nav-link:hover {
+                    color: #0d6efd !important;
+                    transform: translateY(-1px);
+                }
+
+            .card {
+                border: none;
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .btn {
+                border-radius: 10px;
+                font-weight: 500;
+                padding: 8px 18px;
+                transition: all 0.2s ease;
+            }
+
+                .btn:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                }
+
+            /* CSS CHO FLOATING CHATBOT WIDGET */
+            #chatbot-bubble {
+                position: fixed;
+                bottom: 25px;
+                right: 25px;
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #0d6efd, #0043a8);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                cursor: pointer;
+                box-shadow: 0 8px 24px rgba(13, 110, 253, 0.4);
+                z-index: 1060;
+                transition: all 0.3s ease;
+            }
+
+                #chatbot-bubble:hover {
+                    transform: scale(1.1) rotate(10deg);
+                }
+
+            #chatbot-box {
+                position: fixed;
+                bottom: 95px;
+                right: 25px;
+                width: 360px;
+                height: 480px;
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+                display: none;
+                flex-direction: column;
+                z-index: 1060;
+                overflow: hidden;
+                border: 1px solid rgba(0,0,0,0.05);
+            }
+
+            .chatbot-header {
+                background: linear-gradient(135deg, #0d6efd, #0043a8);
+                color: white;
+                padding: 15px;
+                font-weight: 600;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .chatbot-body {
+                flex: 1;
+                padding: 15px;
+                overflow-y: auto;
+                background-color: #f8f9fa;
+            }
+
+            .chat-msg {
+                margin-bottom: 12px;
+                max-width: 85%;
+                padding: 10px 14px;
+                border-radius: 12px;
+                font-size: 14px;
+                line-height: 1.4;
+                /* Cải tiến: Tự động xuống dòng khi gặp ký tự \n một cách an toàn mà không cần innerHTML */
+                white-space: pre-line;
+            }
+
+                .chat-msg.bot {
+                    background-color: white;
+                    color: #333;
+                    align-self: flex-start;
+                    border-bottom-left-radius: 2px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+                }
+
+                .chat-msg.user {
+                    background-color: #0d6efd;
+                    color: white;
+                    margin-left: auto;
+                    border-bottom-right-radius: 2px;
+                }
+
+            .chatbot-suggestions {
+                padding: 8px 12px;
+                background: #fff;
+                border-top: 1px solid #eee;
+                display: flex;
+                gap: 6px;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .suggestion-btn {
+                font-size: 12px;
+                padding: 5px 10px;
+                border-radius: 20px;
+                border: 1px solid #0d6efd;
+                background: transparent;
+                color: #0d6efd;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+                .suggestion-btn:hover {
+                    background: #0d6efd;
+                    color: white;
+                }
+
+            .chatbot-footer {
+                padding: 10px;
+                background: white;
+                border-top: 1px solid #eee;
+                display: flex;
+                gap: 8px;
+            }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary fs-4" asp-controller="CongViec" asp-action="Index">
+                <i class="fa-solid fa-square-check me-2"></i>ToDoTech
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-3">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-controller="CongViec" asp-action="Index">
+                            <i class="fa-solid fa-list-check me-1 text-secondary"></i> Công việc
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-controller="Account" asp-action="Profile">
+                            <i class="fa-solid fa-circle-user me-1 text-secondary"></i> Hồ sơ cá nhân
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-dark fw-bold" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fa-solid fa-shield-halved text-warning me-1"></i> Kiểm thử Quyền
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow mt-2" style="border-radius: 12px;">
+                            <li><a class="dropdown-item py-2" asp-controller="Account" asp-action="AdminSettings"><i class="fa-solid fa-gear me-2 text-muted"></i>Cấu hình Admin</a></li>
+                            <li><a class="dropdown-item py-2" asp-controller="Account" asp-action="UserManagement"><i class="fa-solid fa-users-gear me-2 text-muted"></i>Quản lý Thành viên</a></li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center">
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <span class="me-3 fw-medium text-secondary">Xin chào, <span class="text-dark fw-bold">@User.Identity.Name</span></span>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-3"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Đăng xuất</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-primary me-2">Đăng nhập</a>
+                        <a asp-controller="Account" asp-action="Register" class="btn btn-sm btn-primary">Đăng ký</a>
+                    }
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 start-0 p-3" style="z-index: 1055;" id="alarmToastContainer"></div>
+
+    @if (TempData["ToastMessage"] != null)
+    {
+        <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
+            <div id="liveToast" class="toast show align-items-center text-white bg-dark border-0 rounded-3 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body fs-6 py-3">
+                        <i class="fa-solid fa-bell text-warning me-2"></i> @TempData["ToastMessage"]
+                    </div>
+                    <button type="button" class="btn-close btn-close-white m-auto me-2" data-bs-toast="toast" aria-label="Close" onclick="this.closest('.toast').remove()"></button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div id="chatbot-bubble" onclick="toggleChatbot()">
+        <i class="fa-solid fa-comments"></i>
+    </div>
+
+    <div id="chatbot-box">
+        <div class="chatbot-header">
+            <span><i class="fa-solid fa-robot me-2"></i>Trợ lý ảo ToDoTech</span>
+            <button class="btn-close btn-close-white" style="font-size: 12px;" onclick="toggleChatbot()"></button>
+        </div>
+        <div class="chatbot-body d-flex flex-column" id="chatBody">
+            <div class="chat-msg bot">Chào bạn! Tôi có thể hỗ trợ gì cho bạn về hệ thống ToDoTech hôm nay? Bạn có thể nhập câu hỏi tự nhiên hoặc bấm câu hỏi nhanh phía dưới nhé!</div>
+        </div>
+        <div class="chatbot-suggestions">
+            <button class="suggestion-btn" onclick="sendSuggestion('Hệ thống có những tính năng gì?')">Tính năng hệ thống</button>
+            <button class="suggestion-btn" onclick="sendSuggestion('Xem thống kê công việc của tôi')">Thống kê của tôi</button>
+            <button class="suggestion-btn" onclick="sendSuggestion('Cách tải nhiều ảnh đại diện?')">Tải ảnh đại diện</button>
+        </div>
+        <div class="chatbot-footer">
+            <input type="text" id="chatInput" class="form-control form-control-sm" placeholder="Nhập câu hỏi tự nhiên tại đây..." onkeypress="if(event.keyCode==13) sendChatMessage()" />
+            <button class="btn btn-primary btn-sm px-3" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Tự động ẩn Toast hệ thống gốc sau 4 giây
+        var toastEl = document.getElementById('liveToast');
+        if (toastEl) {
+        setTimeout(function () {
+        toastEl.remove();
+        }, 4000);
+        }
+
+        // =========================================================================
+        // LOGIC CHỨC NĂNG 1: CHUÔNG BÁO THỨC CẬN HẠN KẾT THÚC < 5 PHÚT
+        // =========================================================================
+        function playAlarmSound() {
+        try {
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+        var osc1 = audioCtx.createOscillator();
+        var gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain1.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start();
+        osc1.stop(audioCtx.currentTime + 0.15);
+
+        setTimeout(() => {
+        var osc2 = audioCtx.createOscillator();
+        var gain2 = audioCtx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1200, audioCtx.currentTime);
+        gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start();
+        osc2.stop(audioCtx.currentTime + 0.2);
+        }, 200);
+        } catch (e) {
+        console.log("Trình duyệt chặn phát âm thanh tự động.");
+        }
+        }
+
+        function checkUpcomingDeadlines() {
+        if ('@User.Identity?.IsAuthenticated' !== 'True') return;
+
+        fetch('/CongViec/GetUpcomingDeadlines')
+        .then(res => res.json())
+        .then(data => {
+        if (data && data.length > 0) {
+        let notifiedIds = JSON.parse(sessionStorage.getItem('notifiedTaskIds') || '[]');
+
+        data.forEach(task => {
+        if (!notifiedIds.includes(task.id)) {
+        playAlarmSound();
+
+        const container = document.getElementById('alarmToastContainer');
+        const toastHtml = `
+        <div class="toast show align-items-center text-white bg-danger border-0 rounded-3 shadow mb-2" role="alert" style="min-width: 280px;">
+        <div class="d-flex">
+        <div class="toast-body py-3">
+        <i class="fa-solid fa-triangle-exclamation text-warning fa-bounce me-2"></i>
+        <strong>HẠN CHỚT KHẨN CẤP!</strong><br/>
+        Việc: "${task.ten}" sẽ kết thúc lúc <strong>${task.han}</strong> (Còn dưới 5 phút!).
+        </div>
+        <button type="button" class="btn-close btn-close-white m-auto me-2" onclick="this.closest('.toast').remove()"></button>
+        </div>
+        </div>`;
+        container.insertAdjacentHTML('beforeend', toastHtml);
+
+        notifiedIds.push(task.id);
+        }
+        });
+        sessionStorage.setItem('notifiedTaskIds', JSON.stringify(notifiedIds));
+        }
+        })
+        .catch(err => console.error("Lỗi quét chuông báo thức: ", err));
+        }
+
+        if ('@User.Identity?.IsAuthenticated' === 'True') {
+        setInterval(checkUpcomingDeadlines, 30000);
+        setTimeout(checkUpcomingDeadlines, 2000);
+        }
+
+        // =========================================================================
+        // LOGIC CHỨC NĂNG 2: INTERACTIVE CHATBOT HỖ TRỢ NGỮ CẢNH (ĐÃ TỐI ƯU BẢO MẬT)
+        // =========================================================================
+        function toggleChatbot() {
+        const box = document.getElementById('chatbot-box');
+        if (box.style.display === 'none' || box.style.display === '') {
+        box.style.display = 'flex';
+        document.getElementById('chatInput').focus();
+        } else {
+        box.style.display = 'none';
+        }
+        }
+
+        // Cải tiến an toàn: Dùng textContent chống XSS hoàn toàn
+        function appendMessage(sender, text) {
+        const chatBody = document.getElementById('chatBody');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-msg ${sender}`;
+        msgDiv.textContent = text;
+        chatBody.appendChild(msgDiv);
+        chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Hàm lõi xử lý gọi API AJAX dùng chung, loại bỏ trùng lặp mã nguồn
+        function executeChatbotRequest(message) {
+        fetch('/CongViec/AskChatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ 'message': message })
+        })
+        .then(res => res.json())
+        .then(data => {
+        appendMessage('bot', data.reply);
+        })
+        .catch(() => {
+        appendMessage('bot', 'Rất tiếc, đã có lỗi kết nối đến máy chủ trợ lý!');
+        });
+        }
+
+        function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const message = input.value.trim();
+        if (!message) return;
+
+        appendMessage('user', message);
+        input.value = '';
+        executeChatbotRequest(message);
+        }
+
+        function sendSuggestion(text) {
+        appendMessage('user', text);
+        executeChatbotRequest(text);
+        }
+    </script>
+</body>
+</html>
