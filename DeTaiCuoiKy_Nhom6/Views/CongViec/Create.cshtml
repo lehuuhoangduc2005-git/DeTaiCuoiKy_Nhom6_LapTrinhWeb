@@ -75,6 +75,22 @@
                             </div>
                         </div>
 
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark fs-6">👤 Giao việc cho thành viên (Tài khoản hệ thống)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-2 border-secondary border-end-0 text-secondary">
+                                    <i class="fa-solid fa-user-tag"></i>
+                                </span>
+                                <select asp-for="UserId" asp-items="ViewBag.UserList" class="form-select border-2 border-secondary fw-bold text-dark" style="border-left: none;">
+                                    <option value="">-- Tự giao cho chính mình --</option>
+                                </select>
+                            </div>
+                            <div class="form-text text-muted mt-2">
+                                <i class="fa-solid fa-circle-info text-primary me-1"></i> 
+                                Lựa chọn tài khoản bạn muốn bàn giao. Người được chọn sẽ nhìn thấy công việc này trong danh sách cá nhân của họ.
+                            </div>
+                        </div>
+
                         <div class="mb-4 bg-light p-3 rounded-4 border border-1 border-secondary border-opacity-25">
                             <h6 class="fw-bold text-secondary mb-3"><i class="fa-solid fa-map me-1"></i> Định vị phân bổ Ma trận Eisenhower:</h6>
                             
