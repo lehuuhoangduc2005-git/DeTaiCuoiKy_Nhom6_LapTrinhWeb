@@ -1,7 +1,6 @@
 ﻿@{
     ViewData["Title"] = "Cấu hình Hệ thống - ToDoTech";
 }
-
 <style>
     .setting-card {
         transition: all 0.3s ease;
@@ -40,7 +39,7 @@
             💾 Lưu Tất Cả Thay Đổi
         </button>
     </div>
-
+    
     <div class="row g-4">
         <div class="col-lg-3">
             <div class="card shadow-sm border-0 p-3">
@@ -54,10 +53,14 @@
                     <button class="nav-link text-start py-3 mb-2 fw-semibold" id="v-pills-notify-tab" data-bs-toggle="pill" data-bs-target="#v-pills-notify" type="button" role="tab">
                         🔔 Thông báo & Chuông
                     </button>
+                    <!-- THÊM TAB BIỂU ĐỒ THỐNG KÊ MỚI -->
+                    <button class="nav-link text-start py-3 mb-2 fw-semibold bg-light text-dark border" id="v-pills-chart-tab" data-bs-toggle="pill" data-bs-target="#v-pills-chart" type="button" role="tab" onclick="loadAdminChart()">
+                        📊 Biểu đồ Hiệu suất User
+                    </button>
                 </div>
             </div>
         </div>
-
+        
         <div class="col-lg-9">
             <div class="tab-content" id="v-pills-tabContent">
                 
@@ -127,7 +130,7 @@
                                     <div class="alert alert-warning py-3 border-0 shadow-sm d-flex align-items-center">
                                         <span class="fs-4 me-3">💡</span>
                                         <div>
-                                            Để chuông báo tính chuẩn xác giờ-phút cụ thể (ví dụ 17:55 reo chuông), hệ thống tự động đổi kiểu thẻ input của trường <code>NgayHetHan</code> thành <code>type="datetime-local"</code> tại Create/Edit View.
+                                            Khi chuông phát lên thông báo vào giờ-phút cụ thể lúc hạn công việc đó còn dưới 5 phút là hết hạn (Ví dụ: Hạn công việc kết thúc lúc 18:00 thì 17:55 sẽ reo chuông), hệ thống tự động đổi kiểu thẻ input của trường <code>NgayHetHan</code> thành <code>type="datetime-local"</code> tại Create/Edit View.
                                         </div>
                                     </div>
                                 </div>
@@ -153,6 +156,19 @@
                     </div>
                 </div>
 
+                <!-- GIAO DIỆN CHỨA BIỂU ĐỒ ADMIN MỚI -->
+                <div class="tab-pane fade" id="v-pills-chart" role="tabpanel">
+                    <div class="card shadow-sm border-0 setting-card mb-4">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold text-dark mb-2">📊 Biểu đồ Thống kê Tiến độ & Hiệu suất Toàn bộ Thành viên</h5>
+                            <p class="text-muted small mb-4">Dữ liệu được cập nhật tự động thời gian thực từ API phân tích cơ sở dữ liệu của ToDoTech.</p>
+                            <div style="position: relative; height:450px; width:100%">
+                                <canvas id="adminPerformanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -169,10 +185,65 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     function saveAllSettings() {
-        var myAlert = document.getElementById('saveToast');
-        var bsAlert = new bootstrap.Toast(myAlert);
-        bsAlert.show();
+    var myAlert = document.getElementById('saveToast');
+    var bsAlert = new bootstrap.Toast(myAlert);
+    bsAlert.show();
+    }
+
+    let performanceChart = null;
+    function loadAdminChart() {
+    fetch('/CongViec/GetAdminUserStats')
+    .then(res => res.json())
+    .then(data => {
+    const labels = data.map(item => item.email);
+    const hoanThanhSomData = data.map(item => item.hoanThanhSom);
+    const hoanThanhMuonData = data.map(item => item.hoanThanhMuon);
+    const chuaLamData = data.map(item => item.chuaLam);
+
+    const ctx = document.getElementById('adminPerformanceChart').getContext('2d');
+                
+    if (performanceChart) {
+    performanceChart.destroy();
+    }
+
+    performanceChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+    labels: labels,
+    datasets: [
+    {
+    label: 'Hoàn thành sớm 🟢',
+    data: hoanThanhSomData,
+    backgroundColor: '#10b981'
+    },
+    {
+    label: 'Hoàn thành muộn/Cận hạn (<5p) 🟡',
+    data: hoanThanhMuonData,
+    backgroundColor: '#f59e0b'
+    },
+    {
+    label: 'Chưa làm (Tồn đọng) 🔴',
+    data: chuaLamData,
+    backgroundColor: '#ef4444'
+    }
+    ]
+    },
+    options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+    x: { stacked: true, ticks: { font: { weight: 'bold' } } },
+    y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { weight: 'bold' } } }
+    },
+    plugins: {
+    legend: { position: 'top', labels: { font: { weight: 'bold' } } }
+    }
+    }
+    });
+    })
+    .catch(err => console.error("Lỗi nạp dữ liệu đồ thị Admin: ", err));
     }
 </script>

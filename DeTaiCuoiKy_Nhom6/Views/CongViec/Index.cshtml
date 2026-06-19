@@ -1,19 +1,15 @@
 ﻿@model IEnumerable<DeTaiCuoiKy_Nhom6.Models.CongViec>
 @using System.Security.Claims
-
 @{
     ViewData["Title"] = "Quản Lý Công Việc Cá Nhân";
-    var homNay = DateTime.Now; // Đổi sang DateTime.Now để check trễ hạn chính xác theo giờ phút
+    var homNay = DateTime.Now; 
     
-    // Lấy thông tin ID và Role của User đang đăng nhập phục vụ phân quyền hiển thị nút
     var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     var isAdmin = User.IsInRole("Admin");
 
-    // --- TỰ ĐỘNG TÍNH TOÁN SỐ LIỆU BIỂU ĐỒ THEO BỘ LỌC HIỆN TẠI ---
     var totalCompletedCurrent = Model.Count(c => c.DaHoanThanh);
     var totalPendingCurrent = Model.Count(c => !c.DaHoanThanh);
 
-    // Mở rộng đếm thêm các lĩnh vực mới để đồng bộ hóa lên hệ thống biểu đồ Bar Chart
     var countCaNhan = Model.Count(c => c.PhanLoai == "Cá nhân");
     var countHocTap = Model.Count(c => c.PhanLoai == "Học tập");
     var countCongViec = Model.Count(c => c.PhanLoai == "Công việc");
@@ -23,11 +19,9 @@
     var countYTe = Model.Count(c => c.PhanLoai == "Y tế");
     var countMarketing = Model.Count(c => c.PhanLoai == "Marketing");
 }
-
 <style>
-    /* Nâng cấp màu sắc Gradient mượt mà, chuyên nghiệp hơn */
     .gradient-header {
-        background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); /* Chuyển sang tone tối tương phản cao */
+        background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); 
         color: white;
         border-bottom: 3px solid #f59e0b;
     }
@@ -43,11 +37,9 @@
         box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
         color: white;
     }
-
-    /* Tối ưu hóa hiệu ứng Task Cards chống lóa trên máy chiếu */
     .task-card {
-        border: 2px solid #cbd5e1 !important; /* Kẻ viền dày rõ nét */
-        border-left: 6px solid #ef4444 !important; /* Mặc định chưa xong - làm dày thêm */
+        border: 2px solid #cbd5e1 !important; 
+        border-left: 6px solid #ef4444 !important; 
         border-radius: 12px;
         background: #ffffff;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -58,29 +50,24 @@
         border-color: #94a3b8 !important;
     }
     .task-completed {
-        border-left: 6px solid #10b981 !important; /* Xanh ngọc lục bảo khi xong */
+        border-left: 6px solid #10b981 !important; 
         background-color: #f8fafc;
     }
     .task-overdue {
-        border-left: 6px solid #dc2626 !important; /* Đỏ đậm khẩn cấp */
+        border-left: 6px solid #dc2626 !important; 
         background-color: #fef2f2;
         border-color: #fca5a5 !important;
     }
-
-    /* Thống kê hình khối phẳng (Đậm màu tăng tương phản khi trình chiếu) */
     .bg-stat-total { background: linear-gradient(135deg, #1e40af, #1d4ed8); color: white; border: 2px solid #fff; }
     .bg-stat-done { background: linear-gradient(135deg, #059669, #047857); color: white; border: 2px solid #fff; }
     .bg-stat-fail { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; border: 2px solid #fff; }
     
     .bg-purple { background-color: #7c3aed !important; color: white !important; }
-
     .chart-container {
         position: relative;
         height: 240px;
         width: 100%;
     }
-    
-    /* Ép chữ tiêu đề đậm nét */
     h2, h3, h4, h5, h6, label {
         color: #020617 !important;
         font-weight: 700;
@@ -88,6 +75,15 @@
 </style>
 
 <div class="container py-2">
+    <!-- KHU VỰC THÔNG BÁO TOAST THƯỞNG/PHẠT ĐIỂM XP ĐỘNG -->
+    @if (TempData["ToastMessage"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show shadow-sm border-start border-4 border-info rounded-3 mb-4 fw-bold" role="alert">
+            🔔 @TempData["ToastMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="row mb-4">
         <div class="col-md-4 mb-3">
             <div class="card border-0 shadow rounded-4 bg-stat-total">
@@ -123,7 +119,7 @@
             </div>
         </div>
     </div>
-
+    
     <div class="row mb-4">
         <div class="col-md-6 mb-3">
             <div class="card shadow border-2 rounded-4 h-100" style="border: 2px solid #94a3b8 !important;">
@@ -150,7 +146,7 @@
             </div>
         </div>
     </div>
-
+    
     <div class="card shadow border-2 rounded-4 mb-4" style="border: 2px solid #475569 !important;">
         <div class="card-header gradient-header text-center p-4 rounded-top-4">
             <h3 class="fw-bold text-white m-0" style="color: white !important;"><i class="fa-solid fa-clipboard-list me-2"></i>Hệ thống quản lý công việc cá nhân thông minh</h3>
@@ -175,7 +171,6 @@
                         <option value="completed" selected="@(ViewData["CurrentStatus"]?.ToString() == "completed")">Đã xong</option>
                     </select>
                 </div>
-
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-dark">Phân loại</label>
                     <select name="typeFilter" class="form-select border-2 border-secondary bg-light shadow-sm fw-bold" onchange="this.form.submit()">
@@ -190,7 +185,6 @@
                         <option value="Marketing" selected="@(ViewData["CurrentType"]?.ToString() == "Marketing")">Marketing</option>
                     </select>
                 </div>
-
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-dark">Thời gian</label>
                     <select name="timeFilter" class="form-select border-2 border-secondary bg-light shadow-sm fw-bold" onchange="this.form.submit()">
@@ -200,14 +194,12 @@
                         <option value="overdue" selected="@(ViewData["CurrentTime"]?.ToString() == "overdue")">Trễ hạn</option>
                     </select>
                 </div>
-
                 <div class="col-md-2">
                     <a asp-action="Create" class="btn neon-btn-add w-100 py-2 rounded-3 text-center"><i class="fa-solid fa-circle-plus me-1"></i> Thêm Việc</a>
                 </div>
             </form>
-
             <hr class="text-muted opacity-50 border-2">
-
+            
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="text-dark fw-bold m-0"><i class="fa-solid fa-list text-primary me-2"></i>Danh sách nhiệm vụ thực tế</h5>
                 <div>
@@ -219,11 +211,11 @@
                     </button>
                 </div>
             </div>
-
+            
             <div class="row">
                 @foreach (var item in Model) {
                     var isDone = item.DaHoanThanh;
-                    var isOverdue = item.NgayHetHan < homNay && !isDone; // Kiểm tra chính xác theo giờ phút hiện tại
+                    var isOverdue = item.NgayHetHan < homNay && !isDone; 
                     
                     var borderClass = isDone ? "task-completed" : (isOverdue ? "task-overdue" : "");
                     
@@ -264,7 +256,6 @@
                                             }
                                         </button>
                                     </form>
-
                                     @if (isAdmin || (item.UserId == currentUserId && item.CreatedByUserId == currentUserId))
                                     {
                                         <div class="btn-group btn-group-sm bg-light border border-secondary border-opacity-50 rounded-3 shadow-xs p-0.5">
@@ -314,9 +305,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- TÍCH HỢP THƯ VIỆN PHÁO HOA CANVAS-CONFETTI -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        // KIỂM TRA CỜ BAN PHÁO HOA TỪ CONTROLLER TRUYỀN XUỐNG
+        var showFireworks = '@TempData["ShowFireworks"]';
+        if (showFireworks === 'true') {
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+        }
+
         // Biểu đồ Tiến độ (Pie Chart)
         const ctxProgress = document.getElementById('progressChart').getContext('2d');
         new Chart(ctxProgress, {
@@ -368,7 +371,6 @@
         document.getElementById("btnGiaoViecNgauNhien").addEventListener("click", function () {
             this.disabled = true;
             this.innerHTML = "⌛ Đang bốc thăm...";
-
             fetch('/CongViec/TaoNgauNhien', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
@@ -400,7 +402,6 @@
         });
     });
 
-    // LOGIC XUẤT EXCEL CHỐNG LỖI TIẾNG VIỆT
     function exportToExcel() {
         var table = document.getElementById("hiddenExcelTable");
         var html = table.outerHTML;

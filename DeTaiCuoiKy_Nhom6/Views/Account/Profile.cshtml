@@ -1,11 +1,9 @@
 ﻿@model DeTaiCuoiKy_Nhom6.Models.ApplicationUser
 @inject Microsoft.AspNetCore.Identity.UserManager<DeTaiCuoiKy_Nhom6.Models.ApplicationUser> UserManager
-
 @{
     ViewData["Title"] = "Hồ sơ cá nhân";
-    
-    // Lấy danh sách các vai trò (Chức vụ) của thực thể người dùng hiện tại từ cơ sở dữ liệu
     var roles = await UserManager.GetRolesAsync(Model);
+    int phanTramXpLevel = Model.DiemXP % 100; // Tính toán thanh tiến độ của level hiện tại
 }
 
 <div class="container mt-2">
@@ -36,7 +34,6 @@
                         <p class="text-muted small mt-2">Chưa cập nhật ảnh</p>
                     }
                 </div>
-
                 <form asp-action="UploadAvatars" method="post" enctype="multipart/form-data" class="text-start mt-2">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">Chọn từ một hoặc nhiều tệp ảnh:</label>
@@ -48,7 +45,7 @@
                 </form>
             </div>
         </div>
-
+        
         <div class="col-md-8">
             <div class="card shadow-sm border-0 p-4 p-md-5 bg-white" style="border-radius: 20px;">
                 <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4 flex-wrap gap-2">
@@ -60,13 +57,29 @@
                     </a>
                 </div>
                 
+                <!-- KHU VỰC THÀNH TÍCH GAMIFICATION (XP BAR) MỚI -->
+                <div class="card bg-light border-0 rounded-4 p-4 mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fs-5 fw-bold text-dark">🏅 Cấp độ: <span class="text-primary fs-4">@Model.CapDo</span></span>
+                        <span class="badge bg-dark px-3 py-2 fs-6 rounded-pill">@Model.DanhHieu</span>
+                    </div>
+                    <div class="progress rounded-pill shadow-sm mb-2" style="height: 24px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-gradient" role="progressbar"
+                             style="width: @phanTramXpLevel%; background-color: #7c3aed;" aria-valuenow="@phanTramXpLevel" aria-valuemin="0" aria-valuemax="100">
+                            @phanTramXpLevel%
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted fw-bold">
+                        <span>Tích lũy hiện tại: @Model.DiemXP XP</span>
+                        <span>Còn @(100 - phanTramXpLevel) XP để thăng cấp tiếp theo</span>
+                    </div>
+                </div>
+
                 <div class="row g-3 fs-6">
                     <div class="col-4 fw-bold text-secondary">Họ và tên thành viên:</div>
                     <div class="col-8 text-dark fw-medium">@Model.HoTen</div>
-
                     <div class="col-4 fw-bold text-secondary">Hộp thư điện tử:</div>
                     <div class="col-8 text-dark fw-medium">@Model.Email</div>
-
                     <div class="col-4 fw-bold text-secondary">Chức vụ hệ thống:</div>
                     <div class="col-8">
                         @if (roles.Contains("Admin"))
@@ -82,7 +95,6 @@
                             </span>
                         }
                     </div>
-
                     <div class="col-4 fw-bold text-secondary">Trạng thái bảo mật:</div>
                     <div class="col-8">
                         @if (Model.EmailConfirmed)
@@ -103,3 +115,34 @@
         </div>
     </div>
 </div>
+
+<!-- TÍCH HỢP HIỆU ỨNG PHÁO HOA KHI USER UY TÍN CAO GHÉ THĂM HỒ SƠ -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+    var diemXp = @Model.DiemXP;
+    if (diemXp >= 300) { // Nếu đạt danh hiệu Năng nổ hoặc Xuất sắc
+    var duration = 2 * 1000;
+    var end = Date.now() + duration;
+
+    (function frame() {
+    confetti({
+    particleCount: 4,
+    angle: 60,
+    spread: 55,
+    origin: { x: 0, y: 0.8 }
+    });
+    confetti({
+    particleCount: 4,
+    angle: 120,
+    spread: 55,
+    origin: { x: 1, y: 0.8 }
+    });
+
+    if (Date.now() < end) {
+    requestAnimationFrame(frame);
+    }
+    }());
+    }
+    });
+</script>

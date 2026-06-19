@@ -160,7 +160,7 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
             // Kho dữ liệu mẫu quy chuẩn phục vụ đồ án đa lĩnh vực
             var khoCongViec = new Dictionary<string, List<(string Ten, string MoTa)>>()
             {
-                { "Vàn phòng", new List<(string, string)> {
+                { "Văn phòng", new List<(string, string)> {
                     ("Soạn thảo biên bản cuộc họp", "Tổng hợp lại toàn bộ nội dung cuộc họp tuần này và gửi cho sếp."),
                     ("Sắp xếp lại tủ hồ sơ dự án", "Phân loại tài liệu cũ và tiến hành số hóa đưa lên hệ thống lưu trữ cloud."),
                     ("Kiểm kê văn phòng phẩm", "Lập danh sách bút, giấy, mực in cần mua bổ sung cho tháng tới.")
@@ -193,8 +193,16 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
             var danhSachTask = khoCongViec[linhVucNgauNhien];
             var taskNgauNhien = danhSachTask[random.Next(danhSachTask.Count)];
 
-            // Thiết lập hạn chót linh động từ 1 đến 7 ngày tới
-            DateTime hanChotNgauNhien = DateTime.Now.AddDays(random.Next(1, 8));
+            // NÂNG CẤP: Tính toán xác suất xuất hiện hạn chót dưới 5 phút (Xác suất thấp: 10%)
+            DateTime hanChotNgauNhien;
+            if (random.Next(1, 101) <= 10) // 10% cơ hội rơi vào tình huống khẩn cấp reo chuông
+            {
+                hanChotNgauNhien = DateTime.Now.AddMinutes(random.Next(2, 5));
+            }
+            else
+            {
+                hanChotNgauNhien = DateTime.Now.AddDays(random.Next(1, 8)).AddHours(random.Next(1, 12));
+            }
 
             var cvMoi = new CongViec
             {
@@ -212,7 +220,7 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
                 _context.CongViecs.Add(cvMoi);
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("User {UserId} đã sinh ngẫu nhiên thành công công việc ID {TaskId}", user.Id, cvMoi.Id);
-                return Json(new { success = true, message = $"Hệ thống vừa phân cho bạn một việc thuộc lĩnh vực [{linhVucNgauNhien}]!" });
+                return Json(new { success = true, message = $"Hệ thống vừa phân cho bạn một việc ngẫu nhiên thuộc lĩnh vực [{linhVucNgauNhien}]!" });
             }
             catch (Exception ex)
             {
@@ -223,7 +231,7 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
 
         /// <summary>
         /// POST: CongViec/ToggleStatus/5
-        /// Thay đổi nhanh trạng thái hoàn thành của công việc thông qua cơ chế nhấn Checkbox hoặc Button.
+        /// Thay đổi nhanh trạng thái hoàn thành của công việc + Tích hợp Gamification tính điểm XP.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -237,21 +245,96 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
 
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
 
-            // Kiểm soát an ninh vòng lặp: Chỉ chủ sở hữu hoặc Admin tối cao mới được đổi trạng thái
             if (congViec.UserId == user.Id || isAdmin)
             {
-                congViec.DaHoanThanh = !congViec.DaHoanThanh;
+                bool trangThaiMoi = !congViec.DaHoanThanh;
+                congViec.DaHoanThanh = trangThaiMoi;
+
+                // LOGIC GAMIFICATION: Tính toán điểm số dựa vào mốc thời gian hoàn thành
+                var chuSoHuu = await _userManager.FindByIdAsync(congViec.UserId);
+                if (chuSoHuu != null)
+                {
+                    if (trangThaiMoi) // Nếu đánh dấu HOÀN THÀNH
+                    {
+                        var thoiGianConLai = congViec.NgayHetHan - DateTime.Now;
+
+                        if (thoiGianConLai.TotalMinutes > 0)
+                        {
+                            if (thoiGianConLai.TotalMinutes <= 5)
+                            {
+                                chuSoHuu.DiemXP += 10; // Hạn còn dưới 5 phút: cộng ít điểm
+                                TempData["ToastMessage"] = "Hoàn thành cận hạn (< 5 phút)! Được cộng +10 XP. 🕒";
+                            }
+                            else
+                            {
+                                chuSoHuu.DiemXP += 30; // Hoàn thành sớm hạn: cộng nhiều điểm
+                                TempData["ToastMessage"] = "Tuyệt vời! Hoàn thành sớm hạn được cộng +30 XP! 🚀";
+                            }
+                        }
+                        else
+                        {
+                            chuSoHuu.DiemXP = Math.Max(0, chuSoHuu.DiemXP - 15); // Đã hết hạn mà chưa làm: Bị trừ điểm
+                            TempData["ToastMessage"] = "Công việc đã hết hạn từ trước! Bị trừ -15 XP. ⚠️";
+                        }
+
+                        TempData["ShowFireworks"] = "true"; // Bật cờ kích hoạt hiệu ứng bắn pháo hoa ở View
+                    }
+                    else // Nếu hủy đánh dấu hoàn thành (chuyển ngược lại chưa xong)
+                    {
+                        // Hoàn trả điểm hoặc trừ phạt tùy ý, ở đây giữ nguyên hoặc trừ nhẹ tránh lỗi lạm dụng bug điểm
+                        chuSoHuu.DiemXP = Math.Max(0, chuSoHuu.DiemXP - 10);
+                        TempData["ToastMessage"] = "Đã chuyển việc về trạng thái CHƯA XONG! Trừ bớt 10 XP. 🕒";
+                    }
+
+                    await _userManager.UpdateAsync(chuSoHuu);
+                }
+
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Công việc {TaskId} đã được đổi trạng thái thành {Status}", id, congViec.DaHoanThanh);
-                TempData["ToastMessage"] = congViec.DaHoanThanh ? "Đã đánh dấu HOÀN THÀNH công việc! 🎉" : "Đã chuyển việc về trạng thái CHƯA XONG! 🕒";
             }
             else
             {
                 _logger.LogWarning("User {UserId} cố gắng thay đổi trạng thái Task trái phép của {OwnerId}", user.Id, congViec.UserId);
                 return RedirectToAction("AccessDenied", "Account");
             }
-
             return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// GET: CongViec/GetAdminUserStats
+        /// API bảo mật cung cấp chuỗi số liệu cấu trúc JSON cho đồ thị thống kê Admin Settings.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetAdminUserStats()
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null || !(await _userManager.IsInRoleAsync(user, "Admin")))
+            {
+                return Forbid();
+            }
+
+            var now = DateTime.Now;
+            var danhSachUser = await _userManager.Users.ToListAsync();
+            var duLieuBieuDo = new List<object>();
+
+            foreach (var u in danhSachUser)
+            {
+                var danhSachViec = await _context.CongViecs.Where(c => c.UserId == u.Id).ToListAsync();
+
+                int hoanThanhSom = danhSachViec.Count(c => c.DaHoanThanh && c.NgayHetHan > now.AddMinutes(5));
+                int hoanThanhMuon = danhSachViec.Count(c => c.DaHoanThanh && c.NgayHetHan <= now.AddMinutes(5));
+                int chuaLam = danhSachViec.Count(c => !c.DaHoanThanh);
+
+                duLieuBieuDo.Add(new
+                {
+                    email = u.Email,
+                    hoanThanhSom,
+                    hoanThanhMuon,
+                    chuaLam
+                });
+            }
+
+            return Json(duLieuBieuDo);
         }
 
         /// <summary>
@@ -261,12 +344,8 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            // Lấy toàn bộ danh sách tài khoản đã đăng ký trong hệ thống
             var danhSachThanhVien = await _userManager.Users.ToListAsync();
-            
-            // Đẩy vào ViewBag dưới dạng SelectList (Lưu Id tài khoản, hiển thị Email trên Dropdown)
             ViewBag.UserList = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(danhSachThanhVien, "Id", "Email");
-            
             return View();
         }
 
@@ -282,24 +361,16 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
             {
                 var user = await GetCurrentUserAsync();
                 if (user == null) return Challenge();
-
-                // Nếu người thao tác không chọn ai cụ thể ở Dropdown, mặc định tự gán cho chính họ
                 if (string.IsNullOrEmpty(congViec.UserId))
                 {
                     congViec.UserId = user.Id;
                 }
-
-                // Luôn lưu vết ID người thực sự bấm nút tạo ra công việc này
                 congViec.CreatedByUserId = user.Id;
-
                 _context.Add(congViec);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Thêm mới thành công công việc thủ công: {Title} và giao cho User ID: {UserId}", congViec.TenCongViec, congViec.UserId);
                 TempData["ToastMessage"] = "Thêm mới và giao công việc thành công rực rỡ! 🚀";
                 return RedirectToAction(nameof(Index));
             }
-
-            // Nếu form nhập liệu không hợp lệ, nạp lại danh sách tài khoản tránh bị crash Dropdown của View
             var users = await _userManager.Users.ToListAsync();
             ViewBag.UserList = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(users, "Id", "Email", congViec.UserId);
             return View(congViec);
@@ -315,25 +386,19 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
             if (id == null) return NotFound();
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-
             var congViec = await _context.CongViecs.FindAsync(id);
             if (congViec == null) return NotFound();
-
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
-
-            // KIỂM TRA BẢO MẬT ĐƯỜNG DẪN (Anti-Backdoor): Phải là Admin HOẶC chính chủ tạo mới có quyền truy cập Form sửa
             if (!isAdmin && (congViec.UserId != user.Id || congViec.CreatedByUserId != user.Id))
             {
-                _logger.LogWarning("Truy cập trái phép Form Edit bởi User {User} tại Task {TaskId}", user.Id, id);
                 return RedirectToAction("AccessDenied", "Account");
             }
-
             return View(congViec);
         }
 
         /// <summary>
         /// POST: CongViec/Edit/5
-        /// Cập nhật thông tin chi tiết công việc, thực thi kỹ thuật chống tấn công ghi đè thuộc tính phân quyền.
+        /// Cập nhật thông tin chi tiết công việc.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -342,34 +407,25 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
             if (id != congViec.Id) return NotFound();
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-
-            // Truy vấn lấy bản ghi không theo vết (AsNoTracking) từ DB để đối chiếu dữ liệu gốc an toàn
             var bieuMauGoc = await _context.CongViecs.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
             if (bieuMauGoc == null) return NotFound();
-
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
             if (!isAdmin && (bieuMauGoc.UserId != user.Id || bieuMauGoc.CreatedByUserId != user.Id))
             {
-                _logger.LogWarning("Hành vi chỉnh sửa dữ liệu bất hợp pháp bị chặn tại Task {TaskId}", id);
                 return RedirectToAction("AccessDenied", "Account");
             }
-
             if (ModelState.IsValid)
             {
                 try
                 {
-                    // KIÊN QUYẾT giữ nguyên các trường phân quyền gốc, tránh lộ lọt cấu trúc dữ liệu qua Form đè
                     congViec.UserId = bieuMauGoc.UserId;
                     congViec.CreatedByUserId = bieuMauGoc.CreatedByUserId;
-
                     _context.Update(congViec);
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation("Cập nhật thành công công việc ID {TaskId}", congViec.Id);
                     TempData["ToastMessage"] = "Cập nhật dữ liệu công việc thành công! 💾";
                 }
-                catch (DbUpdateConcurrencyException ex)
+                catch (DbUpdateConcurrencyException)
                 {
-                    _logger.LogError(ex, "Lỗi xung đột đồng thời khi cập nhật Task {TaskId}", congViec.Id);
                     if (!CongViecExists(congViec.Id)) return NotFound();
                     else throw;
                 }
@@ -380,7 +436,6 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
 
         /// <summary>
         /// GET: CongViec/Delete/5
-        /// Hiển thị màn hình xác nhận xóa công việc nếu đủ thẩm quyền bảo mật.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Delete(int? id)
@@ -388,22 +443,18 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
             if (id == null) return NotFound();
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-
             var congViec = await _context.CongViecs.FirstOrDefaultAsync(m => m.Id == id);
             if (congViec == null) return NotFound();
-
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
             if (!isAdmin && (congViec.UserId != user.Id || congViec.CreatedByUserId != user.Id))
             {
                 return RedirectToAction("AccessDenied", "Account");
             }
-
             return View(congViec);
         }
 
         /// <summary>
         /// POST: CongViec/Delete/5
-        /// Xác nhận hành động hủy và xóa hoàn toàn bản ghi công việc khỏi cơ sở dữ liệu.
         /// </summary>
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -411,74 +462,45 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Challenge();
-
             var congViec = await _context.CongViecs.FindAsync(id);
             if (congViec == null) return NotFound();
-
             var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
-
-            // Chốt chặn an ninh tối cao tầng dữ liệu trước lệnh Remove
             if (!isAdmin && (congViec.UserId != user.Id || congViec.CreatedByUserId != user.Id))
             {
-                _logger.LogCritical("CẢNH BÁO: Tấn công giả mạo yêu cầu xóa Task {TaskId} bởi User {UserId}", id, user.Id);
                 return RedirectToAction("AccessDenied", "Account");
             }
-
             _context.CongViecs.Remove(congViec);
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Xóa thành công công việc ID {TaskId} khỏi hệ thống", id);
             TempData["ToastMessage"] = "Đã xóa công việc khỏi hệ thống! 🗑️";
             return RedirectToAction(nameof(Index));
         }
 
-        /// <summary>
-        /// Hàm nội bộ kiểm tra sự tồn tại của Công việc theo khóa chính
-        /// </summary>
         private bool CongViecExists(int id)
         {
             return _context.CongViecs.Any(e => e.Id == id);
         }
 
-        // =========================================================================
-        // TÍNH NĂNG MỞ RỘNG: LẤY CÔNG VIỆC CẬN HẠN (< 5 PHÚT) & XỬ LÝ CHATBOT THÔNG MINH
-        // =========================================================================
-
-        /// <summary>
-        /// GET: CongViec/GetUpcomingDeadlines
-        /// API thực thi cơ chế Polling chạy ngầm, quét dữ liệu tìm tác vụ sắp hết hạn dưới 5 phút để reo chuông báo thức.
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetUpcomingDeadlines()
         {
             var user = await GetCurrentUserAsync();
             if (user == null) return Json(new List<object>());
-
             var now = DateTime.Now;
             var limitTime = now.AddMinutes(5);
-
-            // Truy vấn lấy dữ liệu rút gọn tối ưu hiệu năng mạng cho API ngầm
             var upcomingTasks = await _context.CongViecs
                 .Where(c => c.UserId == user.Id && !c.DaHoanThanh && c.NgayHetHan > now && c.NgayHetHan <= limitTime)
                 .Select(c => new { id = c.Id, ten = c.TenCongViec, han = c.NgayHetHan.ToString("HH:mm") })
                 .ToListAsync();
-
             return Json(upcomingTasks);
         }
 
-        /// <summary>
-        /// POST: CongViec/AskChatbot
-        /// API xử lý ngôn ngữ tự nhiên cơ bản tích hợp hệ thống, đọc trực tiếp dữ liệu Real-time để trả lời người dùng.
-        /// </summary>
         [HttpPost]
         public async Task<IActionResult> AskChatbot(string message)
         {
             if (string.IsNullOrEmpty(message))
                 return Json(new { reply = "Chào bạn! Bạn có câu hỏi nào cần Trợ lý ToDoTech giải đáp không ạ? 🤖" });
-
             var user = await GetCurrentUserAsync();
             string userId = user?.Id ?? "";
-
-            // Thống kê động thời gian thực phục vụ cho các câu hỏi tổng hợp dữ liệu cá nhân
             int tongViec = 0, daXong = 0, treHan = 0;
             if (!string.IsNullOrEmpty(userId))
             {
@@ -487,11 +509,8 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
                 daXong = await baseQuery.CountAsync(c => c.DaHoanThanh);
                 treHan = await baseQuery.CountAsync(c => c.NgayHetHan.Date < DateTime.Today && !c.DaHoanThanh);
             }
-
             string input = message.ToLower().Trim();
             string reply = "";
-
-            // Thuật toán bóc tách từ khóa tự nhiên ánh xạ kịch bản phản hồi thông minh
             if (input.Contains("thống kê") || input.Contains("bao nhiêu việc") || input.Contains("báo cáo") || input.Contains("tình hình"))
             {
                 reply = $"📊 **Thống kê công việc hiện tại của bạn:**\n\n" +
@@ -504,32 +523,14 @@ namespace DeTaiCuoiKy_Nhom6.Controllers
             {
                 reply = $"🚀 **Hệ thống ToDoTech sở hữu các tính năng cao cấp sau:**\n\n" +
                         $"1. **Quản lý công việc:** Thao tác CRUD cốt lõi, tích hợp bộ lọc thông minh đa chế độ và thuật toán phân trang.\n" +
-                        $"2. **Sinh việc tự động:** Cơ chế bốc ngẫu nhiên việc đa ngành thực tế (Y tế, Giáo dục, Văn phòng, Marketing...).\n" +
-                        $"3. **Cảnh báo chuông reo độc quyền:** Kỹ thuật Polling ngầm phối hợp **Web Audio API** reo chuông báo thức báo động khi việc sắp hết hạn dưới 5 phút.\n" +
-                        $"4. **Chatbot AI nội bộ:** Đọc hiểu số liệu hệ thống thời gian thực, tư vấn và phản hồi nhanh.\n" +
-                        $"5. **An ninh bảo mật tuyệt đối:** Gửi mã xác thực OTP 6 số qua Email khi đăng ký và liên kết chống trùng lặp tài khoản bằng Google Auth.";
-            }
-            else if (input.Contains("chuông") || input.Contains("thông báo") || input.Contains("âm thanh") || input.Contains("5 phút"))
-            {
-                reply = "🔔 **Cơ chế chuông báo thức:** Hệ thống định kỳ gửi gói tin quét cơ sở dữ liệu ngầm. Khi phát hiện bất kỳ công việc nào chưa làm có hạn chót còn dưới 5 phút, trình duyệt nhận diện và gọi lệnh kích hoạt âm thanh chuông reo cảnh báo sinh động, đi kèm hộp Toast nhấp nháy.";
-            }
-            else if (input.Contains("ảnh đại diện") || input.Contains("avatar") || input.Contains("tải ảnh"))
-            {
-                reply = "🖼️ **Cách tải nhiều ảnh đại diện (Multiple Upload):** Bạn di chuyển đến khu vực **'Hồ sơ cá nhân'**, bấm nút chọn File. Hệ thống cho phép quét chuột chọn **hàng loạt hình ảnh cùng một lúc**. Danh sách đường dẫn ảnh sẽ được chuỗi hóa ngăn cách nhau bằng dấu chấm phẩy (`;`) để lưu trữ tối ưu trong DB.";
-            }
-            else if (input.Contains("google") || input.Contains("đăng nhập"))
-            {
-                reply = "🔐 **Đăng nhập tích hợp Google Auth:** Khi chọn đăng nhập thông qua Google, hệ thống tự động kiểm tra Email của bạn. Nếu Email đã tồn tại do đăng ký thủ công trước đó, cơ chế thông minh sẽ tự động gọi phương thức `AddLoginAsync` của Identity để liên kết tài khoản ngay lập tức mà không gây lỗi khóa ngoại.";
-            }
-            else if (input.Contains("chào") || input.Contains("hi") || input.Contains("hello"))
-            {
-                reply = "👋 Xin chào! Tôi là Trợ lý ảo thông minh của hệ thống ToDoTech. Tôi có thể giúp gì cho bạn trong việc quản lý công việc và tìm hiểu hệ thống hôm nay?";
+                        $"2. **Sinh việc tự động:** Cơ chế bốc ngẫu nhiên việc đa ngành thực tế.\n" +
+                        $"3. **Cảnh báo chuông reo độc quyền:** Kỹ thuật Polling ngầm phối hợp **Web Audio API** reo chuông báo thức.\n" +
+                        $"4. **Hệ thống Gamification:** Tích hợp tính điểm XP, nâng cấp level, phân loại danh hiệu danh tiếng thành viên.\n" +
+                        $"5. **Admin Dashboard:** Biểu đồ Chart.js phân tích đa chiều hiệu suất hoàn thành của từng cá nhân.";
             }
             else
             {
-                // Phản hồi dự phòng tự nhiên cho các câu hỏi nằm ngoài luồng kịch bản mẫu
-                reply = $"🤖 **Trợ lý ảo ghi nhận câu hỏi của bạn:** *\"{message}\"*\n\n" +
-                        $"Hệ thống ToDoTech hiện hỗ trợ xuất sắc các nghiệp vụ: Lên lịch, reo chuông cảnh báo (<5 phút), Chatbot đọc số liệu thực, Đăng nhập Google Auth và Upload đa ảnh đại diện. Nếu cần trợ giúp sâu về thuật toán, bạn hãy liên hệ trực tiếp các thành viên Nhóm 6 nhé!";
+                reply = $"🤖 **Trợ lý ảo ghi nhận câu hỏi của bạn:** *\"{message}\"*\n\nNếu cần trợ giúp sâu về thuật toán, bạn hãy liên hệ trực tiếp các thành viên Nhóm 6 nhé!";
             }
             return Json(new { reply });
         }

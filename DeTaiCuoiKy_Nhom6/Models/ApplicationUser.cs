@@ -11,6 +11,21 @@ namespace DeTaiCuoiKy_Nhom6.Models
         public int DiemXP { get; set; } = 0;
         public int CapDo => (DiemXP / 100) + 1; // Cứ 100 XP là lên 1 cấp
 
+        /// <summary>
+        /// Đánh giá mức độ tích cực của thành viên dựa trên điểm số XP thực tế
+        /// </summary>
+        public string DanhHieu
+        {
+            get
+            {
+                if (DiemXP >= 500) return "Xuất sắc & Uy tín 🏆";
+                if (DiemXP >= 300) return "Năng nổ & Tích cực ⚡";
+                if (DiemXP >= 100) return "Bình thường 😐";
+                if (DiemXP >= 30) return "Lười biếng 🦥";
+                return "Kém uy tín ⚠️";
+            }
+        }
+
         // Tính năng chọn 1 hoặc nhiều ảnh làm bộ sưu tập Avatar
         public virtual ICollection<UserAvatar> BoSuuTapAvatar { get; set; } = new List<UserAvatar>();
         public string? Avatars { get; set; }
